@@ -172,8 +172,7 @@ PyObject* FemPostPipelinePy::load(PyObject* args)
 
                 std::string error = std::string(
                     "Result and value must be list of ResultObject and number respectively.");
-                PyErr_SetString(PyExc_TypeError, error.c_str());
-                return nullptr;
+                throw Base::TypeError(error);
             }
 
             // extract the result objects
@@ -187,15 +186,11 @@ PyObject* FemPostPipelinePy::load(PyObject* args)
                 if (!PyObject_TypeCheck(*item, &(DocumentObjectPy::Type))) {
                     std::string error =
                         std::string("type in result list must be 'ResultObject', not ");
-                    PyErr_SetString(PyExc_TypeError, error.c_str());
-                    return nullptr;
+                    throw Base::TypeError(error);
                 }
                 auto obj = static_cast<DocumentObjectPy*>(*item)->getDocumentObjectPtr();
                 if (!obj->isDerivedFrom<FemResultObject>()) {
-                    std::string error =
-                        std::string("type in result list must be 'ResultObject', not ");
-                    PyErr_SetString(PyExc_TypeError, error.c_str());
-                    return nullptr;
+                    throw Base::TypeError("object is not a result object");
                 }
                 results[i] = static_cast<FemResultObject*>(obj);
             }
@@ -207,12 +202,12 @@ PyObject* FemPostPipelinePy::load(PyObject* args)
             values.resize(size);
 
             for (Py::Sequence::size_type i = 0; i < size; i++) {
-                Py::Object value = values_list[i];
-                if (!value.isNumeric()) {
-                    PyErr_SetString(PyExc_TypeError, "Values must be numbers");
-                    return nullptr;
+                Py::Object item = values_list[i];
+                if (!PyFloat_Check(*item)) {
+                    std::string error = std::string("Values must be float");
+                    throw Base::TypeError(error);
                 }
-                values[i] = Py::Float(value).as_double();
+                values[i] = PyFloat_AsDouble(*item);
             }
 
             // extract the unit
@@ -228,8 +223,7 @@ PyObject* FemPostPipelinePy::load(PyObject* args)
         else {
             std::string error = std::string(
                 "Multistep load requires 4 arguments: ResultList, ValueList, unit, type");
-            PyErr_SetString(PyExc_ValueError, error.c_str());
-            return nullptr;
+            throw Base::TypeError(error);
         }
     }
     return nullptr;
